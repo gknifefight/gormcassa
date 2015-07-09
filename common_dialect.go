@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"database/sql"
 	"fmt"
 	"reflect"
 	"strings"
@@ -8,6 +9,10 @@ import (
 )
 
 type commonDialect struct{}
+
+func (commonDialect) Open(driver string, dsn string) (*sql.DB, error) {
+	return sql.Open(driver, dsn)
+}
 
 func (commonDialect) BinVar(i int) string {
 	return "$$" // ?

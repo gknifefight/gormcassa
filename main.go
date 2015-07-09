@@ -36,7 +36,7 @@ type DB struct {
 	joinTableHandlers map[string]JoinTableHandler
 }
 
-func Open(dialect string, args ...interface{}) (DB, error) {
+func Open(driver string, args ...interface{}) (DB, error) {
 	var db DB
 	var err error
 
@@ -45,10 +45,10 @@ func Open(dialect string, args ...interface{}) (DB, error) {
 	} else {
 		var source string
 		var dbSql sqlCommon
+		var dialect Dialect
 
 		switch value := args[0].(type) {
 		case string:
-			var driver = dialect
 			if len(args) == 1 {
 				source = value
 			} else if len(args) >= 2 {
@@ -58,14 +58,16 @@ func Open(dialect string, args ...interface{}) (DB, error) {
 			if driver == "foundation" {
 				driver = "postgres" // FoundationDB speaks a postgres-compatible protocol.
 			}
-			dbSql, err = sql.Open(driver, source)
+
+			dialect = NewDialect(driver)
+			dbSql, err = dialect.Open(driver, source)
 		case sqlCommon:
 			source = reflect.Indirect(reflect.ValueOf(value)).FieldByName("dsn").String()
 			dbSql = value
 		}
 
 		db = DB{
-			dialect:  NewDialect(dialect),
+			dialect:  dialect,
 			logger:   defaultLogger,
 			callback: DefaultCallback,
 			source:   source,

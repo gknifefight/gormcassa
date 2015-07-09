@@ -1,11 +1,13 @@
 package gorm
 
 import (
+	"database/sql"
 	"fmt"
 	"reflect"
 )
 
 type Dialect interface {
+	Open(driver string, source string) (*sql.DB, error)
 	BinVar(i int) string
 	SupportLastInsertId() bool
 	HasTop() bool
@@ -30,6 +32,8 @@ func NewDialect(driver string) Dialect {
 		d = &mysql{}
 	case "sqlite3":
 		d = &sqlite3{}
+	case "cassandra":
+		d = &cassandra{}
 	case "mssql":
 		d = &mssql{}
 	default:
