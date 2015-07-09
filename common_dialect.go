@@ -8,10 +8,72 @@ import (
 	"time"
 )
 
-type commonDialect struct{}
+type commonDialect struct {
+	db sqlCommon
+}
 
-func (commonDialect) Open(driver string, dsn string) (*sql.DB, error) {
-	return sql.Open(driver, dsn)
+func NewCommonDialect(driver string, dsn string) (commonDialect, error) {
+	db, err := sql.Open(driver, dsn)
+
+	common := commonDialect{}
+
+	if err == nil {
+		common.db = db
+	}
+
+	return common, err
+}
+
+func (c commonDialect) RollbackTransaction() error {
+	if db, ok := c.db.(sqlTx); ok {
+		err := db.Rollback()
+
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	return NoValidTransaction
+}
+
+func (c commonDialect) BeginTransaction() error {
+	if db, ok := c.db.(sqlDb); ok {
+		tx, err := db.Begin()
+
+		if err != nil {
+			return err
+		}
+
+		c.db = interface{}(tx).(sqlCommon)
+
+		return nil
+	}
+
+	return CantStartTransaction
+}
+
+func (c commonDialect) CommitTransaction() error {
+	if db, ok := c.db.(sqlTx); ok {
+		err := db.Commit()
+
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	return NoValidTransaction
+}
+
+func (c commonDialect) DB() *sql.DB {
+	return c.db.(*sql.DB)
+}
+
+func (c commonDialect) CloseDB() error {
+	return c.DB().Close()
 }
 
 func (commonDialect) BinVar(i int) string {

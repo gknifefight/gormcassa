@@ -24,7 +24,6 @@ type DB struct {
 	Error             error
 	RowsAffected      int64
 	callback          *callback
-	db                sqlCommon
 	parent            *DB
 	search            *search
 	logMode           int
@@ -44,7 +43,6 @@ func Open(driver string, args ...interface{}) (DB, error) {
 		err = errors.New("invalid database source")
 	} else {
 		var source string
-		var dbSql sqlCommon
 		var dialect Dialect
 
 		switch value := args[0].(type) {
@@ -59,11 +57,11 @@ func Open(driver string, args ...interface{}) (DB, error) {
 				driver = "postgres" // FoundationDB speaks a postgres-compatible protocol.
 			}
 
-			dialect = NewDialect(driver)
-			dbSql, err = dialect.Open(driver, source)
-		case sqlCommon:
-			source = reflect.Indirect(reflect.ValueOf(value)).FieldByName("dsn").String()
-			dbSql = value
+			dialect, err = NewDialect(driver, source)
+
+			if err != nil {
+				return db, err
+			}
 		}
 
 		db = DB{
@@ -72,7 +70,6 @@ func Open(driver string, args ...interface{}) (DB, error) {
 			callback: DefaultCallback,
 			source:   source,
 			values:   map[string]interface{}{},
-			db:       dbSql,
 		}
 		db.parent = &db
 	}
@@ -81,11 +78,11 @@ func Open(driver string, args ...interface{}) (DB, error) {
 }
 
 func (s *DB) Close() error {
-	return s.parent.db.(*sql.DB).Close()
+	return s.dialect.CloseDB()
 }
 
 func (s *DB) DB() *sql.DB {
-	return s.db.(*sql.DB)
+	return s.dialect.DB()
 }
 
 func (s *DB) New() *DB {
@@ -100,13 +97,6 @@ func (db *DB) NewScope(value interface{}) *Scope {
 	dbClone := db.clone()
 	dbClone.Value = value
 	return &Scope{db: dbClone, Search: dbClone.search.clone(), Value: value}
-}
-
-// CommonDB Return the underlying sql.DB or sql.Tx instance.
-// Use of this method is discouraged. It's mainly intended to allow
-// coexistence with legacy non-GORM code.
-func (s *DB) CommonDB() sqlCommon {
-	return s.db
 }
 
 func (s *DB) Callback() *callback {
@@ -334,31 +324,24 @@ func (s *DB) Debug() *DB {
 
 func (s *DB) Begin() *DB {
 	c := s.clone()
-	if db, ok := c.db.(sqlDb); ok {
-		tx, err := db.Begin()
-		c.db = interface{}(tx).(sqlCommon)
-		c.err(err)
-	} else {
-		c.err(CantStartTransaction)
-	}
+
+	err := c.dialect.BeginTransaction()
+	c.err(err)
+
 	return c
 }
 
 func (s *DB) Commit() *DB {
-	if db, ok := s.db.(sqlTx); ok {
-		s.err(db.Commit())
-	} else {
-		s.err(NoValidTransaction)
-	}
+	err := s.dialect.CommitTransaction()
+	s.err(err)
+
 	return s
 }
 
 func (s *DB) Rollback() *DB {
-	if db, ok := s.db.(sqlTx); ok {
-		s.err(db.Rollback())
-	} else {
-		s.err(NoValidTransaction)
-	}
+	err := s.dialect.RollbackTransaction()
+	s.err(err)
+
 	return s
 }
 

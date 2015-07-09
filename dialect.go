@@ -7,7 +7,11 @@ import (
 )
 
 type Dialect interface {
-	Open(driver string, source string) (*sql.DB, error)
+	RollbackTransaction() error
+	BeginTransaction() error
+	CommitTransaction() error
+	DB() *sql.DB
+	CloseDB() error
 	BinVar(i int) string
 	SupportLastInsertId() bool
 	HasTop() bool
@@ -21,24 +25,25 @@ type Dialect interface {
 	RemoveIndex(scope *Scope, indexName string)
 }
 
-func NewDialect(driver string) Dialect {
+func NewDialect(driver string, dsn string) (Dialect, error) {
 	var d Dialect
+	var err error
+
 	switch driver {
 	case "postgres":
-		d = &postgres{}
-	case "foundation":
-		d = &foundation{}
-	case "mysql":
-		d = &mysql{}
-	case "sqlite3":
-		d = &sqlite3{}
+		common, err := NewCommonDialect(driver, dsn)
+
+		if err != nil {
+			return nil, err
+		}
+
+		d = &postgres{common}
 	case "cassandra":
-		d = &cassandra{}
-	case "mssql":
-		d = &mssql{}
+		d, err = NewCassandraDialect(dsn)
 	default:
 		fmt.Printf("`%v` is not officially supported, running under compatibility mode.\n", driver)
 		d = &commonDialect{}
 	}
-	return d
+
+	return d, err
 }
