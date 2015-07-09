@@ -25,6 +25,18 @@ func (c commonDialect) Connect() error {
 	return err
 }
 
+func (c commonDialect) Exec(query string, vars ...interface{}) (Result, error) {
+	return c.db.Exec(query, vars...)
+}
+
+func (c commonDialect) Query(query string, vars ...interface{}) (Rows, error) {
+	return c.db.Query(query, vars...)
+}
+
+func (c commonDialect) QueryRow(query string, vars ...interface{}) Row {
+	return c.db.QueryRow(query, vars...)
+}
+
 func (c commonDialect) clone() Dialect {
 	return commonDialect{
 		driver: c.driver,

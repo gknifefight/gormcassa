@@ -64,11 +64,6 @@ func (scope *Scope) DB() *DB {
 	return scope.db
 }
 
-// SqlDB return *sql.DB
-func (scope *Scope) SqlDB() sqlCommon {
-	return scope.db.db
-}
-
 // SkipLeft skip remaining callbacks
 func (scope *Scope) SkipLeft() {
 	scope.skipLeft = true
@@ -299,7 +294,7 @@ func (scope *Scope) Exec() *Scope {
 	defer scope.Trace(NowFunc())
 
 	if !scope.HasError() {
-		if result, err := scope.SqlDB().Exec(scope.Sql, scope.SqlVars...); scope.Err(err) == nil {
+		if result, err := scope.Dialect().ExecQuery(scope.Sql, scope.SqlVars...); scope.Err(err) == nil {
 			if count, err := result.RowsAffected(); scope.Err(err) == nil {
 				scope.db.RowsAffected = count
 			}
@@ -344,26 +339,27 @@ func (scope *Scope) Trace(t time.Time) {
 
 // Begin start a transaction
 func (scope *Scope) Begin() *Scope {
-	if db, ok := scope.SqlDB().(sqlDb); ok {
-		if tx, err := db.Begin(); err == nil {
-			scope.db.db = interface{}(tx).(sqlCommon)
-			scope.InstanceSet("gorm:started_transaction", true)
-		}
+	dialect := scope.Dialect().clone()
+	err := dialect.BeginTransaction()
+
+	if err == nil {
+		scope.db.dialect = dialect
+		scope.InstanceSet("gorm:started_transaction", true)
 	}
+
 	return scope
 }
 
 // CommitOrRollback commit current transaction if there is no error, otherwise rollback it
 func (scope *Scope) CommitOrRollback() *Scope {
 	if _, ok := scope.InstanceGet("gorm:started_transaction"); ok {
-		if db, ok := scope.db.db.(sqlTx); ok {
-			if scope.HasError() {
-				db.Rollback()
-			} else {
-				db.Commit()
-			}
-			scope.db.db = scope.db.parent.db
+		if scope.HasError() {
+			scope.Dialect().RollbackTransaction()
+		} else {
+			scope.Dialect().CommitTransaction()
 		}
+
+		scope.db.dialect = scope.db.parent.dialect
 	}
 	return scope
 }

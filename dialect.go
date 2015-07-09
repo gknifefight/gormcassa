@@ -1,18 +1,19 @@
 package gorm
 
 import (
-	"database/sql"
 	"fmt"
 	"reflect"
 )
 
 type Dialect interface {
 	clone() Dialect
+	Exec(query string, vars ...interface{}) (Result, error)
+	Query(query string, vars ...interface{}) (Rows, error)
+	QueryRow(query string, vars ...interface{}) Row
 	RollbackTransaction() error
 	Connect() error
 	BeginTransaction() error
 	CommitTransaction() error
-	DB() *sql.DB
 	CloseDB() error
 	BinVar(i int) string
 	SupportLastInsertId() bool

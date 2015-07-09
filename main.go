@@ -1,7 +1,6 @@
 package gorm
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 	"reflect"
@@ -79,10 +78,6 @@ func Open(driver string, args ...interface{}) (DB, error) {
 
 func (s *DB) Close() error {
 	return s.dialect.CloseDB()
-}
-
-func (s *DB) DB() *sql.DB {
-	return s.dialect.DB()
 }
 
 func (s *DB) New() *DB {
@@ -207,11 +202,11 @@ func (s *DB) Scan(dest interface{}) *DB {
 	return s.clone().NewScope(s.Value).Set("gorm:query_destination", dest).callCallbacks(s.parent.callback.queries).db
 }
 
-func (s *DB) Row() *sql.Row {
+func (s *DB) Row() Row {
 	return s.NewScope(s.Value).row()
 }
 
-func (s *DB) Rows() (*sql.Rows, error) {
+func (s *DB) Rows() (Rows, error) {
 	return s.NewScope(s.Value).rows()
 }
 
