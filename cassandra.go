@@ -1,7 +1,6 @@
 package gorm
 
 import (
-	"database/sql"
 	"fmt"
 	"github.com/gocql/gocql"
 	"reflect"
@@ -11,13 +10,27 @@ import (
 
 type cassandra struct {
 	Cluster *gocql.ClusterConfig
-	Session *gocql.Session
+	Session *Session
 	dsn     dsn
 }
 
 type dsn struct {
 	keyspace string
 	hosts    []string
+}
+
+type Session struct {
+	session *gocql.Session
+}
+
+func (s *Session) Close() error {
+	s.session.Close()
+
+	if !s.session.Closed() {
+		return fmt.Errorf("Can't close the session")
+	}
+
+	return nil
 }
 
 func parseDSN(source string) (dsn, error) {
@@ -53,14 +66,30 @@ func NewCassandraDialect(source string) (Dialect, error) {
 }
 
 func (c cassandra) clone() Dialect {
-	return cassandra{
+	return &cassandra{
 		dsn:     c.dsn,
 		Cluster: c.Cluster,
 		Session: c.Session,
 	}
 }
 
-func (c cassandra) Connect() error {
+func (c cassandra) DB() Database {
+	return c.Session
+}
+
+func (c cassandra) Exec(query string, vars ...interface{}) (Result, error) {
+	return nil, nil
+}
+
+func (c cassandra) Query(query string, vars ...interface{}) (Rows, error) {
+	return nil, nil
+}
+
+func (c cassandra) QueryRow(query string, vars ...interface{}) Row {
+	return nil
+}
+
+func (c *cassandra) Connect() error {
 	cluster := gocql.NewCluster(c.dsn.hosts...)
 	cluster.Keyspace = c.dsn.keyspace
 
@@ -72,7 +101,7 @@ func (c cassandra) Connect() error {
 		return err
 	}
 
-	c.Session = session
+	c.Session = &Session{session}
 
 	return nil
 }
@@ -92,10 +121,6 @@ func (cassandra) CommitTransaction() error {
 func (c cassandra) CloseDB() error {
 	c.Session.Close()
 
-	return nil
-}
-
-func (cassandra) DB() *sql.DB {
 	return nil
 }
 
@@ -142,6 +167,9 @@ func (cassandra) SqlTag(value reflect.Value, size int, autoIncrease bool) string
 	case reflect.Struct:
 		if _, ok := value.Interface().(time.Time); ok {
 			return "timestamp"
+		}
+		if _, ok := value.Interface().(gocql.UUID); ok {
+			return "uuid"
 		}
 	default:
 		if _, ok := value.Interface().([]byte); ok {

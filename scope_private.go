@@ -334,18 +334,18 @@ func (scope *Scope) updatedAttrsWithValues(values map[string]interface{}, ignore
 	return
 }
 
-func (scope *Scope) row() *sql.Row {
+func (scope *Scope) row() Row {
 	defer scope.Trace(NowFunc())
 	scope.callCallbacks(scope.db.parent.callback.rowQueries)
 	scope.prepareQuerySql()
-	return scope.SqlDB().QueryRow(scope.Sql, scope.SqlVars...)
+	return scope.Dialect().QueryRow(scope.Sql, scope.SqlVars...)
 }
 
-func (scope *Scope) rows() (*sql.Rows, error) {
+func (scope *Scope) rows() (Rows, error) {
 	defer scope.Trace(NowFunc())
 	scope.callCallbacks(scope.db.parent.callback.rowQueries)
 	scope.prepareQuerySql()
-	return scope.SqlDB().Query(scope.Sql, scope.SqlVars...)
+	return scope.Dialect().Query(scope.Sql, scope.SqlVars...)
 }
 
 func (scope *Scope) initialize() *Scope {

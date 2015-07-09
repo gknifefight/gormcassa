@@ -18,7 +18,7 @@ func NewCommonDialect(driver string, dsn string) (commonDialect, error) {
 	return commonDialect{driver: driver, dsn: dsn}, nil
 }
 
-func (c commonDialect) Connect() error {
+func (c *commonDialect) Connect() error {
 	db, err := sql.Open(c.driver, c.dsn)
 	c.db = db
 
@@ -38,11 +38,15 @@ func (c commonDialect) QueryRow(query string, vars ...interface{}) Row {
 }
 
 func (c commonDialect) clone() Dialect {
-	return commonDialect{
+	return &commonDialect{
 		driver: c.driver,
 		dsn:    c.dsn,
 		db:     c.db,
 	}
+}
+
+func (c commonDialect) DB() Database {
+	return c.db
 }
 
 func (c commonDialect) RollbackTransaction() error {
@@ -87,10 +91,6 @@ func (c commonDialect) CommitTransaction() error {
 	}
 
 	return NoValidTransaction
-}
-
-func (c commonDialect) DB() *sql.DB {
-	return c.db.(*sql.DB)
 }
 
 func (c commonDialect) CloseDB() error {

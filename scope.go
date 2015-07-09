@@ -294,7 +294,7 @@ func (scope *Scope) Exec() *Scope {
 	defer scope.Trace(NowFunc())
 
 	if !scope.HasError() {
-		if result, err := scope.Dialect().ExecQuery(scope.Sql, scope.SqlVars...); scope.Err(err) == nil {
+		if result, err := scope.Dialect().Exec(scope.Sql, scope.SqlVars...); scope.Err(err) == nil {
 			if count, err := result.RowsAffected(); scope.Err(err) == nil {
 				scope.db.RowsAffected = count
 			}

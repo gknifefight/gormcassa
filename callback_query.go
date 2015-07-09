@@ -53,6 +53,7 @@ func Query(scope *Scope) {
 		defer rows.Close()
 
 		columns, _ := rows.Columns()
+
 		for rows.Next() {
 			scope.db.RowsAffected++
 

@@ -7,6 +7,7 @@ type sqlCommon interface {
 	Prepare(query string) (*sql.Stmt, error)
 	Query(query string, args ...interface{}) (*sql.Rows, error)
 	QueryRow(query string, args ...interface{}) *sql.Row
+	Close() error
 }
 
 type sqlDb interface {
@@ -33,4 +34,8 @@ type Row interface {
 type Result interface {
 	LastInsertId() (int64, error)
 	RowsAffected() (int64, error)
+}
+
+type Database interface {
+	Close() error
 }

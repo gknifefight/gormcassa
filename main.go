@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"reflect"
@@ -110,6 +111,10 @@ func (s *DB) LogMode(enable bool) *DB {
 		s.logMode = 1
 	}
 	return s
+}
+
+func (s *DB) DB() *sql.DB {
+	return s.dialect.DB().(*sql.DB)
 }
 
 func (s *DB) SingularTable(enable bool) {

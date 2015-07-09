@@ -7,6 +7,7 @@ import (
 
 type Dialect interface {
 	clone() Dialect
+	DB() Database
 	Exec(query string, vars ...interface{}) (Result, error)
 	Query(query string, vars ...interface{}) (Rows, error)
 	QueryRow(query string, vars ...interface{}) Row
