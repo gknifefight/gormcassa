@@ -20,13 +20,37 @@ type dsn struct {
 }
 
 type Session struct {
-	session *gocql.Session
+	*gocql.Session
+}
+
+type Iter struct {
+	*gocql.Iter
+}
+
+func (i *Iter) Columns() ([]string, error) {
+	columns := make([]string, 1)
+
+	for _, column := range i.Iter.Columns() {
+		columns = append(columns, column.Name)
+	}
+
+	return columns, nil
+}
+
+func (i *Iter) Scan(dest ...interface{}) error {
+	result := i.Iter.Scan(dest)
+
+	if !result {
+		return i.Err()
+	}
+
+	return nil
 }
 
 func (s *Session) Close() error {
-	s.session.Close()
+	s.Session.Close()
 
-	if !s.session.Closed() {
+	if !s.Session.Closed() {
 		return fmt.Errorf("Can't close the session")
 	}
 
@@ -82,7 +106,9 @@ func (c cassandra) Exec(query string, vars ...interface{}) (Result, error) {
 }
 
 func (c cassandra) Query(query string, vars ...interface{}) (Rows, error) {
-	return nil, nil
+	iter := &Iter{c.Session.Query(query, vars...).Iter()}
+
+	return iter, nil
 }
 
 func (c cassandra) QueryRow(query string, vars ...interface{}) Row {
@@ -119,9 +145,7 @@ func (cassandra) CommitTransaction() error {
 }
 
 func (c cassandra) CloseDB() error {
-	c.Session.Close()
-
-	return nil
+	return c.Session.Close()
 }
 
 func (cassandra) ReturningStr(tableName, key string) string {
@@ -133,7 +157,7 @@ func (cassandra) SelectFromDummyTable() string {
 }
 
 func (cassandra) Quote(key string) string {
-	return fmt.Sprintf(`"%s"`, key)
+	return fmt.Sprintf("%s", key)
 }
 
 func (cassandra) SupportLastInsertId() bool {
