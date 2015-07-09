@@ -12,6 +12,7 @@ import (
 type cassandra struct {
 	Cluster *gocql.ClusterConfig
 	Session *gocql.Session
+	dsn     dsn
 }
 
 type dsn struct {
@@ -44,22 +45,36 @@ func NewCassandraDialect(source string) (Dialect, error) {
 		return nil, err
 	}
 
-	cluster := gocql.NewCluster(dsn.hosts...)
-	cluster.Keyspace = dsn.keyspace
-
 	cass := &cassandra{
-		Cluster: cluster,
+		dsn: dsn,
 	}
+
+	return cass, nil
+}
+
+func (c cassandra) clone() Dialect {
+	return cassandra{
+		dsn:     c.dsn,
+		Cluster: c.Cluster,
+		Session: c.Session,
+	}
+}
+
+func (c cassandra) Connect() error {
+	cluster := gocql.NewCluster(c.dsn.hosts...)
+	cluster.Keyspace = c.dsn.keyspace
+
+	c.Cluster = cluster
 
 	session, err := cluster.CreateSession()
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	cass.Session = session
+	c.Session = session
 
-	return cass, nil
+	return nil
 }
 
 func (cassandra) RollbackTransaction() error {

@@ -9,19 +9,28 @@ import (
 )
 
 type commonDialect struct {
-	db sqlCommon
+	driver string
+	dsn    string
+	db     sqlCommon
 }
 
 func NewCommonDialect(driver string, dsn string) (commonDialect, error) {
-	db, err := sql.Open(driver, dsn)
+	return commonDialect{driver: driver, dsn: dsn}, nil
+}
 
-	common := commonDialect{}
+func (c commonDialect) Connect() error {
+	db, err := sql.Open(c.driver, c.dsn)
+	c.db = db
 
-	if err == nil {
-		common.db = db
+	return err
+}
+
+func (c commonDialect) clone() Dialect {
+	return commonDialect{
+		driver: c.driver,
+		dsn:    c.dsn,
+		db:     c.db,
 	}
-
-	return common, err
 }
 
 func (c commonDialect) RollbackTransaction() error {

@@ -7,7 +7,9 @@ import (
 )
 
 type Dialect interface {
+	clone() Dialect
 	RollbackTransaction() error
+	Connect() error
 	BeginTransaction() error
 	CommitTransaction() error
 	DB() *sql.DB
@@ -44,6 +46,8 @@ func NewDialect(driver string, dsn string) (Dialect, error) {
 		fmt.Printf("`%v` is not officially supported, running under compatibility mode.\n", driver)
 		d = &commonDialect{}
 	}
+
+	err = d.Connect()
 
 	return d, err
 }
