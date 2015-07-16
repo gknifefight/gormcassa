@@ -28,7 +28,7 @@ type Iter struct {
 }
 
 func (i *Iter) Columns() ([]string, error) {
-	columns := make([]string, 1)
+	columns := make([]string, 0)
 
 	for _, column := range i.Iter.Columns() {
 		columns = append(columns, column.Name)
@@ -38,7 +38,7 @@ func (i *Iter) Columns() ([]string, error) {
 }
 
 func (i *Iter) Scan(dest ...interface{}) error {
-	result := i.Iter.Scan(dest)
+	result := i.Iter.Scan(dest...)
 
 	if !result {
 		return i.Err()
@@ -108,7 +108,7 @@ func (c cassandra) Exec(query string, vars ...interface{}) (Result, error) {
 func (c cassandra) Query(query string, vars ...interface{}) (Rows, error) {
 	iter := &Iter{c.Session.Query(query, vars...).Iter()}
 
-	return iter, nil
+	return iter, iter.Err()
 }
 
 func (c cassandra) QueryRow(query string, vars ...interface{}) Row {
