@@ -71,6 +71,7 @@ func Update(scope *Scope) {
 				strings.Join(sqls, ", "),
 				scope.CombinedConditionSql(),
 			))
+
 			scope.Exec()
 		}
 	}

@@ -47,6 +47,14 @@ func (i *Iter) Scan(dest ...interface{}) error {
 	return nil
 }
 
+func (i *Iter) LastInsertId() (int64, error) {
+	return 0, nil
+}
+
+func (i *Iter) RowsAffected() (int64, error) {
+	return int64(len(i.Rows())), nil
+}
+
 func (s *Session) Close() error {
 	s.Session.Close()
 
@@ -102,7 +110,11 @@ func (c cassandra) DB() Database {
 }
 
 func (c cassandra) Exec(query string, vars ...interface{}) (Result, error) {
-	return nil, nil
+	qs := c.Session.Query(query, vars...)
+
+	iter := &Iter{qs.Iter()}
+
+	return iter, iter.Err()
 }
 
 func (c cassandra) Query(query string, vars ...interface{}) (Rows, error) {
