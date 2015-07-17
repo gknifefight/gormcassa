@@ -112,7 +112,9 @@ func (c cassandra) Query(query string, vars ...interface{}) (Rows, error) {
 }
 
 func (c cassandra) QueryRow(query string, vars ...interface{}) Row {
-	return nil
+	iter, _ := c.Query(query, vars...)
+
+	return iter
 }
 
 func (c *cassandra) Connect() error {
